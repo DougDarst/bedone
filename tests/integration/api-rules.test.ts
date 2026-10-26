@@ -82,13 +82,15 @@ describe("another user's records", () => {
   });
 
   it('cannot be created on their behalf', async () => {
+    // Await each request as it's made: a second, not-yet-awaited rejection
+    // would be reported as unhandled.
     const task = bob.pb
       .collection('tasks')
       .create({ owner: alice.id, title: 'x', type: 'one_off', priority: 'low', due_date: today() });
+    expect(await statusOf(task)).toBe(400);
     const rule = bob.pb
       .collection('recurring_rules')
       .create({ owner: alice.id, title: 'x', priority: 'low', frequency: 'daily' });
-    expect(await statusOf(task)).toBe(400);
     expect(await statusOf(rule)).toBe(400);
   });
 
