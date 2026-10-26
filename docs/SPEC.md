@@ -225,7 +225,19 @@ these win. Open items to revisit live in `docs/TODO.md`.
   - `completed_at` (datetime; empty = open). This single field replaces the
     separate "completed checkbox" and "completed date".
   - `sort_order` (number): manual order within a date and priority
+  - `next_instance` (relation → tasks): the instance created when this one
+    was completed, so reopening it removes exactly that successor
 - An instance is "manually moved" when `due_date ≠ scheduled_date`.
+- Server-only fields (`owner` after creation, `type`, `rule`,
+  `scheduled_date`, `completed_at`, `next_instance`, `deleted_at`, a rule's
+  `frequency`) can't be set through the records API. Clients create one-off
+  tasks only, and never delete tasks or rules through it.
+- Custom routes (authenticated, owner-only, each one transaction):
+  `POST /api/tasks/{id}/complete`, `POST /api/tasks/{id}/uncomplete`,
+  `POST /api/recurring-rules/{id}/delete`. Creating and editing rules uses the
+  normal records API, with hooks that create or update the open instance in
+  the same transaction.
+- Reopening an instance whose rule was deleted is blocked.
 - API rules on every collection: `owner = @request.auth.id`; creates must set
   `owner` to the authenticated user.
 - Indexes: `tasks(owner, due_date)`, and a unique partial index on

@@ -15,8 +15,9 @@ Guidance for Claude Code when working in this repo.
   decision is provisional.
 
 ## Commit workflow (strict)
-1. Run the full suite: `npm run test:all` (type check + unit tests), plus
-   `npm run build`, and E2E tests once they exist.
+1. Run the full suite: `npm run test:all` (type check, unit tests, and
+   integration tests against a real PocketBase), plus `npm run build`, and E2E
+   tests once they exist. Integration tests need `npm run pb:setup` once.
 2. Show the user: a summary of the changes, the test results, and the
    proposed commit message.
 3. Wait for explicit approval. Never commit or push without asking.
@@ -39,7 +40,11 @@ Guidance for Claude Code when working in this repo.
 - `src/lib/recurrence/` must stay dependency-free: it is bundled into the
   PocketBase hooks.
 - All recurrence mutations run server-side in PocketBase hooks inside a
-  transaction.
+  transaction. Logic goes in `pb_hooks/lib/service.js`; each hook handler runs
+  in its own JS context and must `require` it inside the handler.
+- Writes in hooks take the transactional `txApp`, never the outer `$app`.
+- When adding integration tests, make sure they fail if the logic is broken
+  (pick cases where a wrong implementation gives a different answer).
 - All schema changes are PocketBase migrations in the repo.
 - No secrets in the repo; use env vars and keep `.env.example` current.
 - Write tests alongside code (Vitest for logic, Playwright for E2E on WebKit

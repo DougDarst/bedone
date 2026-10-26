@@ -12,3 +12,6 @@ export const APP = {
 export function appDisplayName(app: { name: string; emoji: string } = APP): string {
   return app.emoji ? `${app.name} ${app.emoji}` : app.name;
 }
+
+/** "Today" is always determined in this time zone (see docs/SPEC.md). */
+export const TIME_ZONE = 'America/Los_Angeles';

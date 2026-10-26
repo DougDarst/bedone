@@ -10,19 +10,27 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "build": "vite build && npm run build:hooks",
+    "build:hooks": "vite build --config vite.hooks.config.ts",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:all": "npm run check && npm run test"
+    "test:integration": "npm run build:hooks && vitest run --config vitest.integration.config.ts",
+    "test:all": "npm run check && npm run test && npm run test:integration",
+    "pb:setup": "./scripts/setup-pocketbase.sh",
+    "pb:serve": "npm run build:hooks && ./pocketbase serve"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tsconfig/svelte": "^5.0.8",
+    "@types/node": "^26.6.5",
     "svelte": "^5.57.3",
     "svelte-check": "^4.7.7",
     "typescript": "^6.0.3",
     "vite": "^8.3.5",
     "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "pocketbase": "^0.28.1"
   }
 }
