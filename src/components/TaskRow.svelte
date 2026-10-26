@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { Check, ChevronDown, Folder, Repeat } from '@lucide/svelte';
+  import { Check, ChevronDown, FileText, Folder, Repeat } from '@lucide/svelte';
+  import { tick } from 'svelte';
   import { formatShortDate } from '../lib/format';
   import { isIsoDate, type IsoDate } from '../lib/recurrence';
   import { taskStore } from '../lib/state/tasks.svelte';
@@ -9,23 +10,25 @@
     task: Task;
     today: IsoDate;
     onToggle: (id: string, done: boolean) => Promise<void> | void;
+    onOpenNotes: (id: string) => void;
   }
 
-  let { task, today, onToggle }: Props = $props();
+  let { task, today, onToggle, onOpenNotes }: Props = $props();
 
   const done = $derived(Boolean(task.completed_at));
   const overdue = $derived(!done && task.due_date < today);
   const recurring = $derived(task.type !== 'one_off');
+  const hasNotes = $derived(task.notes.trim() !== '');
 
   // Shows the tick the moment it's tapped, while the server confirms.
   let pending = $state<boolean | null>(null);
   const checked = $derived(pending ?? done);
 
-  let draft = $state('');
+  // The title shows as text (so a long press can start a drag) and becomes
+  // an input when tapped.
   let editing = $state(false);
-  $effect(() => {
-    if (!editing) draft = task.title;
-  });
+  let draft = $state('');
+  let input = $state<HTMLInputElement>();
 
   async function toggle() {
     if (pending !== null) return;
@@ -37,23 +40,26 @@
     }
   }
 
+  async function startEditing() {
+    if (done) return;
+    draft = task.title;
+    editing = true;
+    await tick();
+    input?.focus();
+    input?.setSelectionRange(draft.length, draft.length);
+  }
+
   async function saveTitle() {
+    if (!editing) return;
     editing = false;
     const title = draft.trim();
-    if (!title) {
-      draft = task.title;
-      return;
-    }
-    if (title !== task.title) await taskStore.update(task.id, { title });
+    if (title && title !== task.title) await taskStore.update(task.id, { title });
   }
 
   function onTitleKeydown(event: KeyboardEvent) {
-    const input = event.currentTarget as HTMLInputElement;
-    if (event.key === 'Enter') input.blur();
+    if (event.key === 'Enter') input?.blur();
     if (event.key === 'Escape') {
-      draft = task.title;
-      editing = false;
-      input.blur();
+      editing = false; // blur then has nothing to save
     }
   }
 
@@ -63,9 +69,9 @@
   }
 
   function openPicker(event: MouseEvent) {
-    const input = event.currentTarget as HTMLInputElement;
+    const picker = event.currentTarget as HTMLInputElement;
     try {
-      input.showPicker?.();
+      picker.showPicker?.();
     } catch {
       // Some browsers only allow showPicker from certain gestures; the native control still works.
     }
@@ -91,18 +97,22 @@
   </button>
 
   <div class="title">
-    <input
-      type="text"
-      aria-label="Title"
-      class:overdue
-      readonly={done}
-      maxlength="500"
-      enterkeyhint="done"
-      bind:value={draft}
-      onfocus={() => (editing = true)}
-      onblur={saveTitle}
-      onkeydown={onTitleKeydown}
-    />
+    {#if editing}
+      <input
+        bind:this={input}
+        type="text"
+        aria-label="Title"
+        maxlength="500"
+        enterkeyhint="done"
+        bind:value={draft}
+        onblur={saveTitle}
+        onkeydown={onTitleKeydown}
+      />
+    {:else}
+      <!-- Pointer shortcut for inline editing; keyboard users edit the title in the notes modal. -->
+      <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+      <span class="title-text" class:overdue onclick={startEditing}>{task.title}</span>
+    {/if}
     {#if task.is_project}
       <Folder size={15} role="img" aria-label="Project" class="kind-icon" />
     {/if}
@@ -110,6 +120,15 @@
       <Repeat size={15} role="img" aria-label="Recurring" class="kind-icon" />
     {/if}
   </div>
+
+  <button
+    class="notes"
+    class:has-notes={hasNotes}
+    aria-label={hasNotes ? `Open notes: ${task.title}` : `Add notes: ${task.title}`}
+    onclick={() => onOpenNotes(task.id)}
+  >
+    <FileText size={17} aria-hidden="true" />
+  </button>
 
   <label class="date" class:overdue>
     <span aria-hidden="true">{formatShortDate(task.due_date)}</span>
@@ -144,18 +163,37 @@
     padding: 0 6px 0 4px;
     border-bottom: 1px solid var(--divider);
     background: var(--bg);
+    /* A long press drags the task rather than selecting text. */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
 
-  .check {
+  .check,
+  .notes {
     display: flex;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    width: var(--tap);
     height: var(--tap);
     padding: 0;
     border: 0;
     background: transparent;
+  }
+
+  .check {
+    width: var(--tap);
+  }
+
+  .notes {
+    width: 34px;
+    color: var(--muted);
+    opacity: 0.55;
+  }
+
+  .notes.has-notes {
+    color: var(--accent);
+    opacity: 1;
   }
 
   .ring {
@@ -196,7 +234,24 @@
     align-items: center;
     gap: 6px;
     min-width: 0;
+    min-height: var(--tap);
     color: var(--muted);
+  }
+
+  .title-text,
+  .title input {
+    font-size: 16px;
+    line-height: 1.3;
+    color: var(--text);
+  }
+
+  .title-text {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 0;
+    overflow-wrap: anywhere;
+    cursor: text;
+    transition: color 200ms ease-out;
   }
 
   .title input {
@@ -207,24 +262,19 @@
     border: 0;
     outline: none;
     background: transparent;
-    font-size: 16px;
-    color: var(--text);
-    text-overflow: ellipsis;
-    transition: color 200ms ease-out;
+    user-select: text;
+    -webkit-user-select: text;
   }
 
-  .title input:focus {
-    text-overflow: clip;
-  }
-
-  .title input.overdue,
+  .title-text.overdue,
   .date.overdue {
     color: var(--overdue);
   }
 
-  .done .title input {
+  .done .title-text {
     color: var(--muted);
     text-decoration: line-through;
+    cursor: default;
   }
 
   .title :global(.kind-icon) {

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { buildSections, completedOn, endOfWeek, isVisible, sortTasks, type Filters } from './list';
+import {
+  buildSections,
+  completedOn,
+  endOfWeek,
+  isVisible,
+  placeDroppedTask,
+  sortTasks,
+  type Filters,
+} from './list';
 import type { Task } from './types';
 
 // Mon Oct 26, 2026. Los Angeles is UTC-7 (PDT) on this date.
@@ -211,6 +219,80 @@ describe('buildSections', () => {
 
     it('still shows the empty window days when filtering by priority', () => {
       expect(buildSections(tasks, TODAY, { scope: 'all', priorities: ['low'] })).toHaveLength(8);
+    });
+  });
+});
+
+describe('placeDroppedTask', () => {
+  const tomorrow = '2026-10-27';
+
+  describe('dropped on another day', () => {
+    it('lands at the bottom of its priority group, wherever it was dropped', () => {
+      const dropped = task({ title: 'moved', priority: 'medium', sort_order: 5, due_date: TODAY });
+      const order = [
+        task({ priority: 'high', sort_order: 100, due_date: tomorrow }),
+        dropped, // dropped near the top
+        task({ priority: 'medium', sort_order: 10, due_date: tomorrow }),
+        task({ priority: 'medium', sort_order: 30, due_date: tomorrow }),
+        task({ priority: 'low', sort_order: 999, due_date: tomorrow }),
+      ];
+      expect(placeDroppedTask(order, dropped.id, tomorrow)).toEqual({ due_date: tomorrow, sort_order: 31 });
+    });
+
+    it('only changes the date when the day has no tasks of its priority', () => {
+      const dropped = task({ priority: 'low', sort_order: 5 });
+      const order = [task({ priority: 'high', sort_order: 1, due_date: tomorrow }), dropped];
+      expect(placeDroppedTask(order, dropped.id, tomorrow)).toEqual({ due_date: tomorrow });
+    });
+
+    it('ignores completed tasks when finding the bottom', () => {
+      const dropped = task({ priority: 'medium', sort_order: 5 });
+      const order = [
+        task({ priority: 'medium', sort_order: 10, due_date: tomorrow }),
+        dropped,
+        task({ priority: 'medium', sort_order: 500, due_date: tomorrow, completed_at: '2026-10-26 18:00:00.000Z' }),
+      ];
+      expect(placeDroppedTask(order, dropped.id, tomorrow)).toEqual({ due_date: tomorrow, sort_order: 11 });
+    });
+  });
+
+  describe('reordered within its day', () => {
+    const a = () => task({ title: 'a', priority: 'medium', sort_order: 10 });
+    const b = () => task({ title: 'b', priority: 'medium', sort_order: 20 });
+    const c = () => task({ title: 'c', priority: 'medium', sort_order: 30 });
+
+    it('moves between two neighbours', () => {
+      const [ta, tb, tc] = [a(), b(), c()];
+      expect(placeDroppedTask([ta, tc, tb], tc.id, TODAY)).toEqual({ sort_order: 15 });
+    });
+
+    it('moves to the top or bottom of its group', () => {
+      const [ta, tb, tc] = [a(), b(), c()];
+      expect(placeDroppedTask([tc, ta, tb], tc.id, TODAY)).toEqual({ sort_order: 9 });
+      expect(placeDroppedTask([tb, tc, ta], ta.id, TODAY)).toEqual({ sort_order: 31 });
+    });
+
+    it('returns null when dropped back where it was', () => {
+      const [ta, tb, tc] = [a(), b(), c()];
+      expect(placeDroppedTask([ta, tb, tc], tb.id, TODAY)).toBeNull();
+    });
+
+    it('snaps back into its own priority group', () => {
+      const high1 = task({ priority: 'high', sort_order: 1 });
+      const high2 = task({ priority: 'high', sort_order: 2 });
+      const low1 = task({ priority: 'low', sort_order: 1 });
+      const low2 = task({ priority: 'low', sort_order: 2 });
+      // low2 dropped between the two High tasks: it can't join them, so it
+      // becomes the first Low task.
+      expect(placeDroppedTask([high1, low2, high2, low1], low2.id, TODAY)).toEqual({ sort_order: 0 });
+      // Dropped among the High tasks but still after low1: no change.
+      expect(placeDroppedTask([low1, high1, low2, high2], low2.id, TODAY)).toBeNull();
+    });
+
+    it('returns null for an unknown task or a task alone in its group', () => {
+      const only = task({ priority: 'high' });
+      expect(placeDroppedTask([only], only.id, TODAY)).toBeNull();
+      expect(placeDroppedTask([only], 'missing', TODAY)).toBeNull();
     });
   });
 });

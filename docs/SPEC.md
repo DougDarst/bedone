@@ -284,6 +284,17 @@ these win. Open items to revisit live in `docs/TODO.md`.
   completion time at the bottom of their day.
 - Tapping a task title edits it inline. A notes button on each row opens the
   notes modal; its icon uses the accent color when the task has notes.
+  - The title shows as text until tapped, so a long press on it can start a
+    drag (the drag library won't start a drag from an input). Keyboard users
+    edit titles in the notes modal.
+- Drag and drop: long press (300 ms) on touch screens, so a swipe still
+  scrolls; click-and-drag with a mouse; Space / arrows / Space with the
+  keyboard. Completed tasks are listed below the open ones and can't be
+  dragged.
+- Notes modal: full screen on phones, centered on desktop. Bold, italics,
+  bulleted and numbered lists, checklists, and links (opened in a new tab).
+  Notes save 600 ms after the last change and again on close; the modal
+  won't close until they're saved. Escape or Done closes it.
 - Desktop uses the same single list, max 680px wide and centered, with the
   priority label shown next to its dot.
 

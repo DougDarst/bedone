@@ -72,6 +72,45 @@ export function sortTasks(tasks: Task[], settling: ReadonlySet<string> = new Set
   });
 }
 
+export type DropChanges = Partial<Pick<Task, 'due_date' | 'sort_order'>>;
+
+/**
+ * What to save when a task is dropped. `order` is the target day's open
+ * tasks in their new on-screen order, including the dropped task (which
+ * still has its old due date).
+ *
+ * - Dropped on another day: it lands at the bottom of its priority group.
+ * - Reordered within its day: it moves within its priority group only.
+ *   Dropping it among another priority's tasks snaps it back into its own
+ *   group, at the nearest position.
+ *
+ * Returns null when nothing changes.
+ */
+export function placeDroppedTask(order: Task[], droppedId: string, targetDate: IsoDate): DropChanges | null {
+  const dropped = order.find((t) => t.id === droppedId);
+  if (!dropped) return null;
+  const group = order.filter((t) => t.priority === dropped.priority && !t.completed_at);
+  const others = group.filter((t) => t.id !== droppedId);
+
+  if (dropped.due_date !== targetDate) {
+    const changes: DropChanges = { due_date: targetDate };
+    if (others.length) changes.sort_order = Math.max(...others.map((t) => t.sort_order)) + 1;
+    return changes;
+  }
+
+  const i = group.findIndex((t) => t.id === droppedId);
+  const prev = group[i - 1];
+  const next = group[i + 1];
+  const alreadyInPlace =
+    (!prev || prev.sort_order < dropped.sort_order) && (!next || dropped.sort_order < next.sort_order);
+  if (alreadyInPlace) return null;
+
+  if (prev && next) return { sort_order: (prev.sort_order + next.sort_order) / 2 };
+  if (prev) return { sort_order: prev.sort_order + 1 };
+  if (next) return { sort_order: next.sort_order - 1 };
+  return null;
+}
+
 /** The last due date the scope includes (overdue dates are always included). */
 function scopeEnd(scope: Scope, today: IsoDate): IsoDate | null {
   if (scope === 'today') return today;

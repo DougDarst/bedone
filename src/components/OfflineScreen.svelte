@@ -1,9 +1,14 @@
 <script lang="ts">
   import { WifiOff } from '@lucide/svelte';
+  import { onMount } from 'svelte';
   import { appDisplayName } from '../lib/config';
   import { connection } from '../lib/state/connection.svelte';
 
   let checking = $state(false);
+  let dialog = $state<HTMLDialogElement>();
+
+  // A modal dialog sits above everything, including an open notes modal.
+  onMount(() => dialog?.showModal());
 
   async function retry() {
     checking = true;
@@ -12,7 +17,14 @@
   }
 </script>
 
-<div class="overlay" role="alertdialog" aria-modal="true" aria-labelledby="offline-title" aria-describedby="offline-body">
+<dialog
+  bind:this={dialog}
+  class="overlay"
+  role="alertdialog"
+  aria-labelledby="offline-title"
+  aria-describedby="offline-body"
+  oncancel={(e) => e.preventDefault()}
+>
   <div class="card">
     <WifiOff size={32} aria-hidden="true" />
     <h1 id="offline-title">Can’t reach {appDisplayName()}</h1>
@@ -21,18 +33,25 @@
       {checking ? 'Checking…' : 'Try again'}
     </button>
   </div>
-</div>
+</dialog>
 
 <style>
   .overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    border: 0;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .overlay[open] {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 16px;
-    background: var(--bg);
   }
 
   .card {

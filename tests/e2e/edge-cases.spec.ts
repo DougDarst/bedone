@@ -1,7 +1,7 @@
 import { TIME_ZONE } from '../../src/lib/config';
 import { formatWeekdayDate } from '../../src/lib/format';
 import { addDays, todayIn } from '../../src/lib/recurrence';
-import { createTask, expect, row, section, signIn, test, titlesIn, today } from './fixtures';
+import { createTask, editTitle, expect, row, section, signIn, test, titlesIn, today } from './fixtures';
 
 /** The instant the next day starts in the app's time zone (handles PST/PDT). */
 function nextMidnight(now: Date): Date {
@@ -82,11 +82,12 @@ test.describe('editing rules', () => {
     await createTask(user, { title: 'Original' });
     await page.reload();
 
-    const title = row(page, 'Original').getByRole('textbox', { name: 'Title' });
-    await title.click();
+    const original = row(page, 'Original');
+    const title = await editTitle(original, 'Original');
     await title.fill('Changed my mind');
     await title.press('Escape');
-    await expect(title).toHaveValue('Original');
+    await expect(title).toHaveCount(0);
+    await expect(original.getByText('Original', { exact: true })).toBeVisible();
 
     await page.reload();
     await expect(row(page, 'Original')).toBeVisible();
@@ -96,11 +97,11 @@ test.describe('editing rules', () => {
     await createTask(user, { title: 'Keep me' });
     await page.reload();
 
-    const title = row(page, 'Keep me').getByRole('textbox', { name: 'Title' });
-    await title.click();
+    const keep = row(page, 'Keep me');
+    const title = await editTitle(keep, 'Keep me');
     await title.fill('');
     await title.press('Enter');
-    await expect(title).toHaveValue('Keep me');
+    await expect(keep.getByText('Keep me', { exact: true })).toBeVisible();
 
     await page.reload();
     await expect(row(page, 'Keep me')).toBeVisible();
@@ -113,7 +114,8 @@ test.describe('editing rules', () => {
 
     const done = row(page, 'Finished');
     await expect(done.getByRole('button', { name: 'Mark not done: Finished' })).toBeVisible();
-    await expect(done.getByRole('textbox', { name: 'Title' })).not.toBeEditable();
+    await done.getByText('Finished', { exact: true }).click();
+    await expect(done.getByRole('textbox', { name: 'Title' })).toHaveCount(0);
     await expect(done.getByLabel('Due date')).toBeDisabled();
     await expect(done.getByLabel('Priority')).toBeDisabled();
   });

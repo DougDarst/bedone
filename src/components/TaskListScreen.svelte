@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
-  import { buildSections } from '../lib/list';
+  import { buildSections, type DropChanges } from '../lib/list';
   import { clock } from '../lib/state/clock.svelte';
   import { connection } from '../lib/state/connection.svelte';
   import { filters } from '../lib/state/filters.svelte';
@@ -18,6 +18,12 @@
   const settling = new SvelteSet<string>();
 
   const sections = $derived(buildSections(taskStore.tasks, clock.today, filters.value, settling));
+
+  // Bumped after every drop so each day's list re-syncs with the saved order.
+  let dropVersion = $state(0);
+
+  let notesTaskId = $state<string | null>(null);
+  const notesTask = $derived(notesTaskId ? taskStore.tasks.find((t) => t.id === notesTaskId) : undefined);
 
   onMount(() => {
     void taskStore.load();
@@ -40,6 +46,11 @@
     }
     setTimeout(() => settling.delete(id), SETTLE_MS);
   }
+
+  async function drop(id: string, changes: DropChanges | null) {
+    if (changes) await taskStore.update(id, changes);
+    dropVersion++;
+  }
 </script>
 
 <Header />
@@ -54,12 +65,27 @@
 
   {#if taskStore.loaded}
     {#each sections as section (section.date)}
-      <DaySection {section} today={clock.today} onToggle={toggle} />
+      <DaySection
+        {section}
+        today={clock.today}
+        {settling}
+        {dropVersion}
+        onToggle={toggle}
+        onDrop={drop}
+        onOpenNotes={(id) => (notesTaskId = id)}
+      />
     {/each}
   {:else}
     <p class="loading" aria-live="polite">Loading…</p>
   {/if}
 </main>
+
+{#if notesTask}
+  <!-- Loaded on first use: the rich text editor is most of the app's code. -->
+  {#await import('./NotesModal.svelte') then { default: NotesModal }}
+    <NotesModal task={notesTask} onClose={() => (notesTaskId = null)} />
+  {/await}
+{/if}
 
 <style>
   main {

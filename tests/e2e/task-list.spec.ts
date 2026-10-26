@@ -1,7 +1,7 @@
 import { appDisplayName } from '../../src/lib/config';
 import { formatWeekdayDate } from '../../src/lib/format';
 import { addDays, nextOccurrence } from '../../src/lib/recurrence';
-import { createTask, expect, row, section, signIn, test, titlesIn, today } from './fixtures';
+import { createTask, editTitle, expect, row, section, signIn, test, titlesIn, today } from './fixtures';
 
 const tomorrowHeading = () => formatWeekdayDate(addDays(today(), 1));
 
@@ -55,7 +55,7 @@ test.describe('task list', () => {
 
     const overdue = section(page, formatWeekdayDate(past));
     await expect(overdue.getByText('Overdue')).toBeVisible();
-    await expect(row(overdue, 'Renew registration').getByRole('textbox', { name: 'Title' })).toHaveCSS(
+    await expect(row(overdue, 'Renew registration').getByText('Renew registration')).toHaveCSS(
       'color',
       'rgb(194, 53, 43)', // --overdue (light theme)
     );
@@ -86,7 +86,7 @@ test.describe('completing tasks', () => {
 
     await page.getByRole('button', { name: 'Complete: Water plants' }).click();
     const done = row(todaySection, 'Water plants');
-    await expect(done.getByRole('textbox', { name: 'Title' })).toHaveCSS('text-decoration-line', 'line-through');
+    await expect(done.getByText('Water plants')).toHaveCSS('text-decoration-line', 'line-through');
     // Completed tasks move to the bottom of their day.
     await expect.poll(() => titlesIn(todaySection)).toEqual(['Stays open', 'Water plants']);
 
@@ -132,8 +132,7 @@ test.describe('editing tasks', () => {
     await createTask(user, { title: 'Draft budget' });
     await page.reload();
 
-    const title = row(page, 'Draft budget').getByRole('textbox', { name: 'Title' });
-    await title.click();
+    const title = await editTitle(row(page, 'Draft budget'), 'Draft budget');
     await title.fill('Draft Q4 budget');
     await title.press('Enter');
     await expect(page.getByRole('button', { name: 'Complete: Draft Q4 budget' })).toBeVisible();

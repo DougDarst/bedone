@@ -78,11 +78,21 @@ function escape(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Titles of the tasks in a section, top to bottom. */
+/** Titles of the tasks in a section, top to bottom (read from each row's checkbox label). */
 export async function titlesIn(scope: Locator): Promise<string[]> {
-  return scope.getByRole('textbox', { name: 'Title' }).evaluateAll((inputs) =>
-    inputs.map((input) => (input as HTMLInputElement).value),
-  );
+  return scope
+    .getByRole('button', { name: /^(Complete|Mark not done): / })
+    .evaluateAll((buttons) =>
+      buttons.map((b) => (b.getAttribute('aria-label') ?? '').replace(/^(Complete|Mark not done): /, '')),
+    );
+}
+
+/** Taps a task's title to edit it inline, returning the title input. */
+export async function editTitle(taskRow: Locator, title: string): Promise<Locator> {
+  await taskRow.getByText(title, { exact: true }).click();
+  const input = taskRow.getByRole('textbox', { name: 'Title' });
+  await expect(input).toBeFocused();
+  return input;
 }
 
 export function createTask(user: TestUser, fields: Record<string, unknown>) {
