@@ -69,6 +69,11 @@ describe('creating a rule', () => {
     );
   });
 
+  it('stores weekdays in a fixed (Sunday-first) order', async () => {
+    const rule = await createRule({ title: 'Ordered', frequency: 'weekly', weekdays: ['thu', 'tue', 'sun'] });
+    expect(rule.weekdays).toEqual(['sun', 'tue', 'thu']);
+  });
+
   it('clears schedule fields that do not apply to the frequency', async () => {
     const rule = await createRule({ title: 'Daily', frequency: 'daily', weekdays: ['mon'], month_week: '1' });
     expect(rule.weekdays).toEqual([]);
@@ -130,6 +135,27 @@ describe('completing an instance', () => {
     expect(next!.due_date).toBe(addDays(threeDaysAgo, 1));
     const { next: after } = await completeTask(user.pb, next!.id);
     expect(after!.due_date).toBe(addDays(threeDaysAgo, 2));
+  });
+
+  it('monthly: the next instance is the same pattern next month', async () => {
+    const schedule: RecurrenceRule = { frequency: 'monthly', monthWeek: 2, monthWeekday: 'wed' };
+    const rule = await createRule({ title: 'Book club', frequency: 'monthly', month_week: '2', month_weekday: 'wed' });
+    const first = await onlyOpenInstance(rule.id);
+    expect(first.due_date).toBe(firstOccurrence(schedule, today()));
+
+    const { next } = await completeTask(user.pb, first.id);
+    expect(next!.due_date).toBe(nextOccurrence(schedule, first.scheduled_date));
+    expect(next!.due_date.slice(0, 7)).not.toBe(first.due_date.slice(0, 7));
+  });
+
+  it('two simultaneous completions (e.g. two devices) create only one next instance', async () => {
+    const rule = await createRule({ title: 'Race', frequency: 'daily' });
+    const first = await onlyOpenInstance(rule.id);
+
+    const results = await Promise.allSettled([completeTask(user.pb, first.id), completeTask(user.pb, first.id)]);
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    expect(await instancesOf(user.pb, rule.id)).toHaveLength(2);
+    expect(await openInstancesOf(user.pb, rule.id)).toHaveLength(1);
   });
 
   it('rejects completing twice', async () => {
@@ -204,6 +230,44 @@ describe('editing a rule', () => {
     await user.pb.collection('recurring_rules').update(rule.id, { weekdays: ['thu'] });
     const expected = firstOccurrence({ frequency: 'weekly', weekdays: ['thu'] } as RecurrenceRule, today());
     expect(await onlyOpenInstance(rule.id)).toMatchObject({ due_date: expected, scheduled_date: expected });
+  });
+
+  it('moves an overdue (unmoved) instance forward to on or after today', async () => {
+    const monday: RecurrenceRule = { frequency: 'weekly', weekdays: ['mon'] };
+    const rule = await createRule({ title: 'Overdue reschedule', frequency: 'weekly', weekdays: ['mon'] });
+    const first = await onlyOpenInstance(rule.id);
+    const pastMonday = firstOccurrence(monday, addDays(today(), -14));
+    await backdate(first.id, pastMonday);
+
+    await user.pb.collection('recurring_rules').update(rule.id, { weekdays: ['thu'] });
+    const expected = firstOccurrence({ frequency: 'weekly', weekdays: ['thu'] }, today());
+    expect(await onlyOpenInstance(rule.id)).toMatchObject({ due_date: expected, scheduled_date: expected });
+  });
+
+  it('renaming or reprioritizing does not move an overdue instance (keeps the catch-up)', async () => {
+    const rule = await createRule({ title: 'Catching up', frequency: 'daily', priority: 'low' });
+    const first = await onlyOpenInstance(rule.id);
+    const threeDaysAgo = addDays(today(), -3);
+    await backdate(first.id, threeDaysAgo);
+
+    await user.pb.collection('recurring_rules').update(rule.id, { title: 'Still catching up', priority: 'high' });
+    expect(await onlyOpenInstance(rule.id)).toMatchObject({
+      title: 'Still catching up',
+      priority: 'high',
+      due_date: threeDaysAgo,
+      scheduled_date: threeDaysAgo,
+    });
+  });
+
+  it('saving the same weekdays in a different order is not a schedule change', async () => {
+    const schedule: RecurrenceRule = { frequency: 'weekly', weekdays: ['tue', 'thu'] };
+    const rule = await createRule({ title: 'Same days', frequency: 'weekly', weekdays: ['tue', 'thu'] });
+    const first = await onlyOpenInstance(rule.id);
+    const pastSlot = firstOccurrence(schedule, addDays(today(), -14));
+    await backdate(first.id, pastSlot);
+
+    await user.pb.collection('recurring_rules').update(rule.id, { weekdays: ['thu', 'tue'] });
+    expect(await onlyOpenInstance(rule.id)).toMatchObject({ due_date: pastSlot, scheduled_date: pastSlot });
   });
 
   it('leaves a manually moved instance where it is', async () => {

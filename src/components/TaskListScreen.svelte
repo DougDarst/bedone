@@ -21,7 +21,7 @@
 
   onMount(() => {
     void taskStore.load();
-    connection.onReconnect(() => void taskStore.load());
+    return connection.onReconnect(() => void taskStore.load());
   });
 
   onDestroy(() => taskStore.reset());

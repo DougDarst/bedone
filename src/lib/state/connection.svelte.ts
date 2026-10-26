@@ -20,9 +20,15 @@ class Connection {
     else this.#schedule(HEARTBEAT_MS);
   }
 
-  /** Registers a callback for when the connection comes back (e.g. to reload data). */
-  onReconnect(handler: () => void): void {
+  /**
+   * Registers a callback for when the connection comes back (e.g. to reload
+   * data). Returns a function that removes it.
+   */
+  onReconnect(handler: () => void): () => void {
     this.#reconnectHandlers.push(handler);
+    return () => {
+      this.#reconnectHandlers = this.#reconnectHandlers.filter((h) => h !== handler);
+    };
   }
 
   markOffline(): void {

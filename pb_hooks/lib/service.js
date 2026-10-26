@@ -15,17 +15,18 @@ function today() {
   return new DateTime().time().in(new Timezone(shared.TIME_ZONE)).format('2006-01-02');
 }
 
-function toArray(goSlice) {
-  const out = [];
-  for (let i = 0; i < goSlice.length; i++) out.push(goSlice[i]);
-  return out;
+/** Weekdays from a Go slice, as a JS array in Sunday-first order (so order never matters). */
+function sortedWeekdays(goSlice) {
+  const days = [];
+  for (let i = 0; i < goSlice.length; i++) days.push(goSlice[i]);
+  return days.sort((a, b) => shared.WEEKDAYS.indexOf(a) - shared.WEEKDAYS.indexOf(b));
 }
 
 /** Converts a recurring_rules record into the shape the shared rule functions expect. */
 function ruleFromRecord(rec) {
   const frequency = rec.getString('frequency');
   if (frequency === 'weekly') {
-    return { frequency, weekdays: toArray(rec.getStringSlice('weekdays')) };
+    return { frequency, weekdays: sortedWeekdays(rec.getStringSlice('weekdays')) };
   }
   if (frequency === 'monthly') {
     const week = rec.getString('month_week');
@@ -45,7 +46,8 @@ function scheduleKey(rec) {
 /** Clears schedule fields that don't apply to the rule's frequency, then validates it. */
 function normalizeRule(rec) {
   const frequency = rec.getString('frequency');
-  if (frequency !== 'weekly') rec.set('weekdays', []);
+  if (frequency === 'weekly') rec.set('weekdays', sortedWeekdays(rec.getStringSlice('weekdays')));
+  else rec.set('weekdays', []);
   if (frequency !== 'monthly') {
     rec.set('month_week', '');
     rec.set('month_weekday', '');

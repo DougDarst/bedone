@@ -135,6 +135,12 @@ describe('buildSections', () => {
     expect(section?.tasks).toEqual([t]);
   });
 
+  it('keeps a future task completed early in its own date section until midnight', () => {
+    const early = task({ due_date: '2026-10-27', completed_at: '2026-10-26 18:00:00.000Z' });
+    expect(buildSections([early], TODAY).find((s) => s.date === '2026-10-27')?.tasks).toEqual([early]);
+    expect(buildSections([early], '2026-10-27').find((s) => s.date === '2026-10-27')?.tasks).toEqual([]);
+  });
+
   it('shows future dates beyond the window when they have tasks', () => {
     const sections = buildSections([task({ due_date: '2026-11-14' })], TODAY);
     expect(dates(sections).at(-1)).toBe('2026-11-14');
