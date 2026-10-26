@@ -14,8 +14,7 @@ and rich-text notes. The app's display name is configurable; see
   server-side hooks)
 - **Frontend:** Svelte 5 + Vite + TypeScript, built as a static app that
   PocketBase serves from `pb_public`
-- **Tests:** Vitest (unit and integration), Playwright (end-to-end, coming
-  soon)
+- **Tests:** Vitest (unit and integration), Playwright (end-to-end)
 
 ## Prerequisites
 
@@ -32,17 +31,19 @@ npm run pb:setup  # downloads the pinned PocketBase binary into ./pocketbase
 
 ## Local development
 
-Start PocketBase. It applies the migrations in `pb_migrations/` automatically
-and loads the hooks in `pb_hooks/`:
-
-```sh
-npm run pb:serve  # http://127.0.0.1:8090 (admin dashboard at /_/)
-```
-
-The first time, create an admin (superuser) account, then your own user:
+The first time, create an admin (superuser) account **before** starting
+PocketBase. (If no superuser exists, PocketBase opens a browser tab with its
+setup page every time it starts.)
 
 ```sh
 ./pocketbase superuser upsert you@example.com 'a-strong-password'
+```
+
+Then start PocketBase. It applies the migrations in `pb_migrations/`
+automatically and loads the hooks in `pb_hooks/`:
+
+```sh
+npm run pb:serve  # http://127.0.0.1:8090 (admin dashboard at /_/)
 ```
 
 Open http://127.0.0.1:8090/_/, sign in, and add a record to the **users**
@@ -78,12 +79,20 @@ npm run dev       # Vite dev server; talks to PocketBase at VITE_PB_URL
 ```sh
 npm test                  # unit tests (Vitest)
 npm run test:integration  # API rules and recurrence, against a real PocketBase
-npm run check             # type check (svelte-check)
+npm run test:e2e          # end-to-end (Playwright): iPhone/WebKit + desktop Chromium
+npm run check             # type checks
 npm run test:all          # all of the above
 ```
 
-Integration tests start their own PocketBase on a temporary database, so
-they never touch `pb_data/`.
+The first time, install the browsers Playwright uses:
+
+```sh
+npx playwright install webkit chromium
+```
+
+Integration and end-to-end tests start their own PocketBase on a temporary
+database, so they never touch `pb_data/`. End-to-end tests run against the
+built app (`test:e2e` builds it first).
 
 ## Building
 

@@ -15,9 +15,10 @@ Guidance for Claude Code when working in this repo.
   decision is provisional.
 
 ## Commit workflow (strict)
-1. Run the full suite: `npm run test:all` (type check, unit tests, and
-   integration tests against a real PocketBase), plus `npm run build`, and E2E
-   tests once they exist. Integration tests need `npm run pb:setup` once.
+1. Run the full suite: `npm run test:all` (type checks, unit, integration
+   against a real PocketBase, and Playwright E2E on WebKit iPhone + desktop
+   Chromium). One-time setup: `npm run pb:setup` and
+   `npx playwright install webkit chromium`.
 2. Show the user: a summary of the changes, the test results, and the
    proposed commit message.
 3. Wait for explicit approval. Never commit or push without asking.
