@@ -8,7 +8,6 @@
   import { taskStore } from '../lib/state/tasks.svelte';
   import DaySection from './DaySection.svelte';
   import FilterBar from './FilterBar.svelte';
-  import Header from './Header.svelte';
   import QuickAdd from './QuickAdd.svelte';
 
   /** How long a just-completed task stays in place before sliding down (style guide › Motion). */
@@ -30,7 +29,7 @@
     return connection.onReconnect(() => void taskStore.load());
   });
 
-  onDestroy(() => taskStore.reset());
+  onDestroy(() => void taskStore.reset());
 
   async function toggle(id: string, done: boolean) {
     if (!done) {
@@ -52,8 +51,6 @@
     dropVersion++;
   }
 </script>
-
-<Header />
 
 <main>
   <QuickAdd />

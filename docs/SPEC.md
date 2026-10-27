@@ -298,6 +298,19 @@ these win. Open items to revisit live in `docs/TODO.md`.
 - Desktop uses the same single list, max 680px wide and centered, with the
   priority label shown next to its dot.
 
+### Recurring tasks screen
+- Reached from the menu ("Tasks" / "Recurring tasks"). Screens have their own
+  URLs (`#/` and `#/recurring`), so reloads and the Back button work.
+- Daily, Weekly, and Monthly sections, rules sorted by title. Each rule shows
+  its priority, its schedule in words ("Every Tue, Thu", "Weekdays", "Last
+  Friday of each month"), and when its open task is due ("Next: Today",
+  "Overdue: Mon, Oct 19").
+- Add and edit in a dialog: title, priority, and the schedule (weekday chips,
+  Monday first; or week of the month + weekday). New rules start on today's
+  weekday and show when the first one will be due. The frequency can't be
+  changed (decision 7).
+- Deleting asks for confirmation and explains that completed tasks are kept.
+
 ### Visual design and libraries (approved 2026-10-26, step 2)
 - Style guide and task list mockup:
   https://claude.ai/artifact/9HwiiQyS7BvdZjEneaYhNY

@@ -32,3 +32,25 @@ export interface Task {
   created: string;
   updated: string;
 }
+
+export type Frequency = 'daily' | 'weekly' | 'monthly';
+export type WeekdayValue = 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat';
+export type MonthWeekValue = '1' | '2' | '3' | '4' | 'last';
+
+export interface RecurringRule {
+  id: string;
+  owner: string;
+  title: string;
+  priority: Priority;
+  frequency: Frequency;
+  /** Weekly only, Sunday-first. */
+  weekdays: WeekdayValue[];
+  /** Monthly only; '' otherwise. */
+  month_week: MonthWeekValue | '';
+  /** Monthly only; '' otherwise. */
+  month_weekday: WeekdayValue | '';
+  /** '' while active. */
+  deleted_at: string;
+  created: string;
+  updated: string;
+}

@@ -18,6 +18,7 @@ class TaskStore {
   error = $state('');
 
   #subscribed = false;
+  #unsubscribe: (() => Promise<void>) | null = null;
 
   /**
    * Loads open tasks plus anything completed in the last two days (enough
@@ -38,17 +39,22 @@ class TaskStore {
 
     if (!this.#subscribed) {
       this.#subscribed = true;
-      await pb.collection('tasks').subscribe<Task>('*', (e) => {
+      this.#unsubscribe = await pb.collection('tasks').subscribe<Task>('*', (e) => {
         if (e.action === 'delete') this.#remove(e.record.id);
         else this.#upsert(e.record);
       });
     }
   }
 
-  reset(): void {
+  /** Clears the list and stops live updates (e.g. when leaving the screen). */
+  async reset(): Promise<void> {
+    this.#subscribed = false;
+    // Removes only this store's listener; other screens may also listen to tasks.
+    const unsubscribe = this.#unsubscribe;
+    this.#unsubscribe = null;
+    await unsubscribe?.().catch(() => {});
     this.tasks = [];
     this.loaded = false;
-    this.#subscribed = false;
   }
 
   /** Quick-add: a Medium one-off due on `date`. */

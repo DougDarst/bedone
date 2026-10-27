@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { LogOut, Menu, Monitor, Moon, Sun } from '@lucide/svelte';
+  import { ListTodo, LogOut, Menu, Monitor, Moon, Repeat, Sun } from '@lucide/svelte';
   import { appDisplayName } from '../lib/config';
+  import { router, type Route } from '../lib/state/router.svelte';
   import { session } from '../lib/state/session.svelte';
   import { theme, type ThemePreference } from '../lib/state/theme.svelte';
 
@@ -12,6 +13,11 @@
     { value: 'system', label: 'System', icon: Monitor },
     { value: 'light', label: 'Light', icon: Sun },
     { value: 'dark', label: 'Dark', icon: Moon },
+  ];
+
+  const screens: { route: Route; label: string; icon: typeof Sun }[] = [
+    { route: 'tasks', label: 'Tasks', icon: ListTodo },
+    { route: 'recurring', label: 'Recurring tasks', icon: Repeat },
   ];
 
   function close() {
@@ -48,6 +54,20 @@
 
   {#if open}
     <div id="app-menu" class="menu" bind:this={menuEl}>
+      <nav aria-label="Screens">
+        {#each screens as screen (screen.route)}
+          <a
+            class="menu-item"
+            href={router.href(screen.route)}
+            aria-current={router.route === screen.route ? 'page' : undefined}
+            onclick={() => (open = false)}
+          >
+            <screen.icon size={18} aria-hidden="true" />
+            {screen.label}
+          </a>
+        {/each}
+      </nav>
+      <hr />
       <div class="group" role="group" aria-labelledby="theme-label">
         <span id="theme-label" class="group-label">Theme</span>
         <div class="segmented">
@@ -148,6 +168,28 @@
     background: var(--accent-soft);
     color: var(--accent-strong);
     font-weight: 600;
+  }
+
+  nav {
+    display: flex;
+    flex-direction: column;
+  }
+
+  hr {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--divider);
+  }
+
+  a.menu-item {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  a.menu-item[aria-current='page'] {
+    font-weight: 600;
+    color: var(--accent-strong);
   }
 
   .menu-item {

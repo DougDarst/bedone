@@ -11,7 +11,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  // The HTML report (playwright-report/, git-ignored) keeps the details of
+  // any failure, including rare flaky ones, after the run.
+  reporter: [[process.env.CI ? 'github' : 'list'], ['html', { open: 'never' }]],
   use: {
     baseURL: `http://127.0.0.1:${PORT}`,
     timezoneId: 'America/Los_Angeles',
