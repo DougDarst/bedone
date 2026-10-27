@@ -18,6 +18,8 @@ class RuleStore {
   loaded = $state(false);
   error = $state('');
 
+  /** Rule id → id of its open instance, so events about other instances are ignored. */
+  #openTask: Record<string, string> = {};
   #subscribed = false;
   #unsubscribers: (() => Promise<void>)[] = [];
 
@@ -27,7 +29,7 @@ class RuleStore {
         pb.collection('recurring_rules').getFullList<RecurringRule>({ filter: "deleted_at = ''", sort: 'created' }),
         pb.collection('tasks').getFullList<Task>({
           filter: "rule != '' && completed_at = ''",
-          fields: 'id,rule,due_date,completed_at',
+          fields: 'id,rule,due_date',
         }),
       ]),
     );
@@ -35,6 +37,7 @@ class RuleStore {
     const [rules, open] = result;
     this.rules = rules;
     this.nextDue = Object.fromEntries(open.map((t) => [t.rule, t.due_date]));
+    this.#openTask = Object.fromEntries(open.map((t) => [t.rule, t.id]));
     this.loaded = true;
 
     if (!this.#subscribed) {
@@ -47,8 +50,8 @@ class RuleStore {
         pb.collection('tasks').subscribe<Task>('*', (e) => {
           const task = e.record;
           if (!task.rule) return;
-          if (e.action !== 'delete' && !task.completed_at) this.nextDue[task.rule] = task.due_date;
-          else if (this.nextDue[task.rule] === task.due_date) delete this.nextDue[task.rule];
+          if (e.action !== 'delete' && !task.completed_at) this.#setOpen(task);
+          else if (this.#openTask[task.rule] === task.id) this.#clearOpen(task.rule);
         }),
       ]);
     }
@@ -62,6 +65,7 @@ class RuleStore {
     await Promise.allSettled(unsubscribers.map((unsubscribe) => unsubscribe()));
     this.rules = [];
     this.nextDue = {};
+    this.#openTask = {};
     this.loaded = false;
   }
 
@@ -100,10 +104,20 @@ class RuleStore {
     const open = await this.#call(() =>
       pb.collection('tasks').getList<Task>(1, 1, {
         filter: pb.filter("rule = {:ruleId} && completed_at = ''", { ruleId }),
-        fields: 'rule,due_date',
+        fields: 'id,rule,due_date',
       }),
     );
-    if (open?.items[0]) this.nextDue[ruleId] = open.items[0].due_date;
+    if (open?.items[0]) this.#setOpen(open.items[0]);
+  }
+
+  #setOpen(task: Pick<Task, 'id' | 'rule' | 'due_date'>): void {
+    this.nextDue[task.rule] = task.due_date;
+    this.#openTask[task.rule] = task.id;
+  }
+
+  #clearOpen(ruleId: string): void {
+    delete this.nextDue[ruleId];
+    delete this.#openTask[ruleId];
   }
 
   async #call<T>(request: () => Promise<T>): Promise<T | null> {
@@ -125,7 +139,7 @@ class RuleStore {
 
   #remove(id: string): void {
     this.rules = this.rules.filter((r) => r.id !== id);
-    delete this.nextDue[id];
+    this.#clearOpen(id);
   }
 }
 

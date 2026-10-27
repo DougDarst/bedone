@@ -346,6 +346,8 @@ Write automated tests as you build, not afterward:
   recurring task, drag to a new date, date picker, inline title edit, notes
   modal, project toggle, project and repeat icons, filters, theme toggle, the
   recurring tasks screen, menu navigation, and the offline error screen.
+- Automated accessibility checks (axe-core, WCAG 2.2 A and AA) on every
+  screen and dialog, in light and dark themes.
 - A GitHub Actions workflow runs the full test suite on every push and pull
   request.
 

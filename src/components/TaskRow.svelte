@@ -145,7 +145,7 @@
   <label class="priority">
     <span class="dot" style:background="var(--priority-{task.priority})" aria-hidden="true"></span>
     <span class="priority-label" aria-hidden="true">{PRIORITY_LABELS[task.priority]}</span>
-    <ChevronDown size={13} aria-hidden="true" />
+    <ChevronDown size={13} aria-hidden="true" class="chevron" />
     <select aria-label="Priority" value={task.priority} disabled={done} onchange={changePriority}>
       {#each PRIORITIES as priority (priority)}
         <option value={priority}>{PRIORITY_LABELS[priority]}</option>
@@ -187,13 +187,12 @@
 
   .notes {
     width: 34px;
-    color: var(--muted);
-    opacity: 0.55;
+    /* Quiet but still 3:1 against the background (WCAG non-text contrast). */
+    color: var(--control);
   }
 
   .notes.has-notes {
     color: var(--accent);
-    opacity: 1;
   }
 
   .ring {
@@ -345,6 +344,11 @@
 
     .priority-label {
       display: inline;
+    }
+
+    /* Chevrons line up whatever the label's length. */
+    .priority :global(.chevron) {
+      margin-left: auto;
     }
   }
 </style>

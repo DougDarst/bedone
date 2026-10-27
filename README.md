@@ -5,8 +5,9 @@ date, recurring tasks (daily, weekly, monthly), drag-and-drop rescheduling,
 and rich-text notes. The app's display name is configurable; see
 [Renaming the app](#renaming-the-app).
 
-> **Status:** early development. See [docs/SPEC.md](docs/SPEC.md) for the full
-> specification and [docs/TODO.md](docs/TODO.md) for open items.
+> **Status:** everything in the spec is built and tested. It runs locally
+> while hosted deployment is on hold. See [docs/SPEC.md](docs/SPEC.md) for
+> the full specification and [docs/TODO.md](docs/TODO.md) for open items.
 
 ## Tech stack
 
@@ -79,7 +80,7 @@ npm run dev       # Vite dev server; talks to PocketBase at VITE_PB_URL
 ```sh
 npm test                  # unit tests (Vitest)
 npm run test:integration  # API rules and recurrence, against a real PocketBase
-npm run test:e2e          # end-to-end (Playwright): iPhone/WebKit + desktop Chromium
+npm run test:e2e          # end-to-end and accessibility (Playwright): iPhone/WebKit + desktop Chromium
 npm run check             # type checks
 npm run test:all          # all of the above
 ```
