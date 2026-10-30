@@ -19,7 +19,8 @@
     "test:all": "npm run check && npm run test && npm run test:integration && npm run test:e2e",
     "pb:setup": "./scripts/setup-pocketbase.sh",
     "pb:serve": "npm run build:hooks && ./pocketbase serve",
-    "test:e2e": "npm run build && playwright test"
+    "test:e2e": "npm run build && playwright test",
+    "seed:demo": "node scripts/seed-demo.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",

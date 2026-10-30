@@ -9,6 +9,16 @@ and rich-text notes. The app's display name is configurable; see
 > while hosted deployment is on hold. See [docs/SPEC.md](docs/SPEC.md) for
 > the full specification and [docs/TODO.md](docs/TODO.md) for open items.
 
+## Screenshots
+
+<p>
+  <img src="docs/screenshots/task-list.png" alt="Task list in the dark theme: overdue tasks in red, today's tasks sorted by priority with repeat and notes icons, and completed tasks struck through" width="49%">
+  <img src="docs/screenshots/recurring-tasks.png" alt="Recurring tasks screen: daily, weekly, and monthly sections, each task with its schedule and next due date" width="49%">
+</p>
+
+The task list (left) and the recurring tasks screen (right), with demo data
+from `npm run seed:demo`.
+
 ## Tech stack
 
 - **Backend:** [PocketBase](https://pocketbase.io) (database, auth, realtime,
@@ -52,6 +62,18 @@ collection with your email and password. Public sign-up is disabled, so
 this is the only way to create an account.
 
 Local data lives in `pb_data/` (git-ignored). Delete it to start over.
+
+### Demo data
+
+To fill an account with realistic sample tasks (for screenshots or trying
+the app out), create a user in the dashboard, then, with PocketBase running:
+
+```sh
+DEMO_EMAIL=demo@example.com DEMO_PASSWORD='its-password' npm run seed:demo
+```
+
+Dates are relative to today. It won't run on an account that already has
+tasks; delete and recreate the user to start over.
 
 To work on the frontend with hot reload, run this alongside `pb:serve`:
 
