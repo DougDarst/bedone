@@ -5,8 +5,8 @@ date, recurring tasks (daily, weekly, monthly), drag-and-drop rescheduling,
 and rich-text notes. The app's display name is configurable; see
 [Renaming the app](#renaming-the-app).
 
-> **Status:** everything in the spec is built and tested. It runs locally
-> while hosted deployment is on hold. See [docs/SPEC.md](docs/SPEC.md) for
+> **Status:** everything in the spec is built and tested. It is in daily
+> use, self-hosted on a small Linux server. See [docs/SPEC.md](docs/SPEC.md) for
 > the full specification and [docs/TODO.md](docs/TODO.md) for open items.
 
 ## Screenshots
@@ -125,9 +125,85 @@ npm run build     # frontend into pb_public/, hooks bundle into pb_hooks/generat
 
 ## Deployment
 
-Deployment is manual, to a PocketBase instance hosted on
-[PocketHost](https://pockethost.io). Step-by-step instructions will be added
-once hosted deployment begins; for now the app runs locally only.
+The app is a single PocketBase process that serves both the API and the
+built frontend, so any Linux server that can run one binary will do. These
+steps self-host it on an Ubuntu server, with [Caddy](https://caddyserver.com)
+in front for automatic HTTPS. Deployment is manual.
+
+In the commands below, replace `you@your-server` with your SSH login and
+`todo.example.com` with your domain. Example config files are in
+[`deploy/`](deploy/).
+
+### One-time server setup
+
+1. Point a DNS A record for `todo.example.com` at the server, and allow
+   ports 80 and 443 through the firewall.
+2. [Install Caddy](https://caddyserver.com/docs/install).
+3. Download the Linux build of PocketBase into `/opt/bedone`. Use the
+   version pinned in `scripts/setup-pocketbase.sh`, and `arm64` instead of
+   `amd64` on an ARM server:
+
+   ```sh
+   VERSION=0.40.6
+   sudo mkdir -p /opt/bedone && sudo chown "$USER": /opt/bedone
+   cd /opt/bedone
+   curl -fsSLO "https://github.com/pocketbase/pocketbase/releases/download/v${VERSION}/pocketbase_${VERSION}_linux_amd64.zip"
+   unzip "pocketbase_${VERSION}_linux_amd64.zip" pocketbase && rm "pocketbase_${VERSION}_linux_amd64.zip"
+   ```
+
+4. Install the service: copy [`deploy/bedone.service`](deploy/bedone.service)
+   to `/etc/systemd/system/bedone.service` on the server, set `User` and
+   `Group` to the account that owns `/opt/bedone`, then:
+
+   ```sh
+   sudo systemctl daemon-reload
+   sudo systemctl enable bedone
+   ```
+
+5. Add the block from [`deploy/Caddyfile.example`](deploy/Caddyfile.example)
+   to `/etc/caddy/Caddyfile` and run `sudo systemctl reload caddy`.
+6. Create the admin (superuser) account before the first start:
+
+   ```sh
+   /opt/bedone/pocketbase superuser upsert you@example.com 'a-strong-password' --dir=/opt/bedone/pb_data
+   ```
+
+   To move existing local data instead, stop your local PocketBase and copy
+   `pb_data/` to `/opt/bedone/` once, before the first start.
+
+### Deploying (first time and every update)
+
+From your machine, in the repo:
+
+```sh
+npm run build
+rsync -avz --delete pb_public pb_hooks pb_migrations you@your-server:/opt/bedone/
+ssh -t you@your-server sudo systemctl restart bedone
+```
+
+PocketBase applies any new migrations when it starts. Check that it's
+running with `sudo systemctl status bedone`, and see its logs with
+`sudo journalctl -u bedone`.
+
+After the first deploy, sign in to `https://todo.example.com/_/` and:
+
+1. Create your account in the **users** collection (skip this if you copied
+   your local `pb_data/`).
+2. Go to **Settings → Application → User IP proxy headers**, add
+   `X-Forwarded-For`, and save. Caddy passes each visitor's real address in
+   that header; without it, PocketBase logs every request as coming from
+   `127.0.0.1`, and any rate limits you enable would apply to everyone at
+   once.
+
+> **Never upload `pb_data/` after the first start.** The server holds the
+> live data. Your local `pb_data/` is a development sandbox, and syncing it
+> would overwrite everything on the server.
+
+### Backups
+
+PocketBase has built-in scheduled backups: in the admin dashboard, go to
+**Settings → Backups**. Note that the server's clock is usually UTC when
+setting the schedule.
 
 ## Renaming the app
 

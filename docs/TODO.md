@@ -10,7 +10,8 @@ When an item is resolved, update `docs/SPEC.md` and remove it here.
   (Decided 2026-10-26, step 1, question 5.)
 
 ## Deferred
-- [ ] **Deploy to PocketHost.** On hold; everything runs locally for now.
-  Pushing to GitHub is still fine.
+- [ ] **Off-server backups.** Backups currently live with the hosting
+  provider (server snapshots, plus PocketBase's built-in backups if enabled).
+  Consider copying backups off the server.
 - [ ] **History UI.** Completed tasks are kept in the database but there is
   no screen to browse them yet.

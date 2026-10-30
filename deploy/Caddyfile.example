@@ -1,0 +1,9 @@
+# Add this block to /etc/caddy/Caddyfile, replacing todo.example.com with
+# your domain, then run: sudo systemctl reload caddy
+#
+# Caddy gets and renews the HTTPS certificate automatically and forwards
+# requests to PocketBase, which serves both the API and the built frontend.
+
+todo.example.com {
+	reverse_proxy 127.0.0.1:8090
+}

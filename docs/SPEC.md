@@ -22,10 +22,12 @@ clean, documented, and safe to publish.
   the README.
 
 ## Stack and hosting
-- Backend: PocketBase (my pocketbase.io account), hosted on PocketHost (my
-  pockethost.io account).
+- Backend: PocketBase, self-hosted on a small Linux server (Ubuntu) as a
+  systemd service, with Caddy in front as a reverse proxy for HTTPS.
+  (Originally planned for PocketHost; changed 2026-10-29 to self-hosting to
+  avoid per-instance pricing.)
 - Frontend: a static single-page app built with Svelte 5 + Vite + TypeScript,
-  served from PocketBase's `pb_public` directory on the same PocketHost
+  served from PocketBase's `pb_public` directory by the same PocketBase
   instance (one deployment, no separate frontend host).
   - Why Svelte: small, readable components (good for an open-source
     project), built-in reactivity that pairs well with PocketBase's realtime
@@ -42,14 +44,17 @@ clean, documented, and safe to publish.
   (America/Los_Angeles).
 
 ## Deployment
-- **ON HOLD: do not deploy anything to PocketHost (pockethost.io) until I say
-  so.** For now, run everything locally: a local PocketBase binary serving
-  `pb_public`, with migrations applied locally. Pushing to GitHub is still
-  fine (with my approval, per the Git workflow below).
-- Manual only. No automated deployment.
+- Self-hosted: PocketBase runs on a Linux server as a systemd service, bound
+  to localhost, with Caddy in front for HTTPS. Example config files live in
+  `deploy/`.
+- Manual only. No automated deployment. Deploy only when I ask.
 - Provide an `npm run build` that outputs the frontend into `pb_public`.
-- Document the exact manual steps in the README: building, uploading the
-  frontend and migrations to PocketHost, and applying migrations.
+- A deploy uploads `pb_public`, `pb_hooks` and `pb_migrations` to the server
+  and restarts the service, which applies new migrations on startup.
+- Never upload `pb_data` to the server after the first start: the server
+  holds the live data.
+- Document the exact manual steps in the README, using placeholders rather
+  than real server addresses or domains.
 
 ## Authentication
 - Single user only, using PocketBase's built-in email/password auth.
@@ -353,7 +358,7 @@ Write automated tests as you build, not afterward:
 
 ## Git workflow
 - Public repo at https://github.com/DougDarst/bedone, MIT license, with a
-  README covering setup, local development, manual deployment to PocketHost,
+  README covering setup, local development, manual self-hosted deployment,
   and how to rename the app.
 - Before every commit: run the full test suite, then show me a summary of the
   changes, the test results, and the proposed commit message. Wait for my

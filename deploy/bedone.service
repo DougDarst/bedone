@@ -1,0 +1,24 @@
+# systemd service for the to-do app (PocketBase) on a Linux server.
+#
+# Install:
+#   1. Set User and Group to the account that owns /opt/bedone.
+#   2. sudo cp bedone.service /etc/systemd/system/bedone.service
+#   3. sudo systemctl daemon-reload && sudo systemctl enable bedone
+#
+# PocketBase listens on localhost only; Caddy (see Caddyfile.example)
+# handles public HTTPS traffic and forwards it here.
+
+[Unit]
+Description=To-do app (PocketBase)
+After=network.target
+
+[Service]
+User=your-user
+Group=your-user
+WorkingDirectory=/opt/bedone
+ExecStart=/opt/bedone/pocketbase serve --http=127.0.0.1:8090 --dir=/opt/bedone/pb_data --publicDir=/opt/bedone/pb_public --hooksDir=/opt/bedone/pb_hooks --migrationsDir=/opt/bedone/pb_migrations
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

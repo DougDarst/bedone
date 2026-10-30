@@ -26,9 +26,17 @@ Guidance for Claude Code when working in this repo.
   commit request.
 
 ## Deployment
-- **On hold.** Do not deploy anything to PocketHost (pockethost.io) until the
-  user says so. Run everything locally. Pushing to GitHub
-  (https://github.com/DougDarst/bedone) is fine with approval.
+- Self-hosted: PocketBase runs as a systemd service on a Linux server, behind
+  Caddy for HTTPS. See `deploy/` and the README's Deployment section.
+- Deploy only when the user asks. Never deploy as a side effect of other work.
+- A deploy is: `npm run build`, upload `pb_public`, `pb_hooks` and
+  `pb_migrations` to the server, then restart the service.
+- **Never upload, overwrite, or delete `pb_data` on the server.** It holds the
+  live data. The local `pb_data/` is a development sandbox only.
+- Keep server addresses, domains, and credentials out of the repo. Use
+  placeholders (`you@your-server`, `todo.example.com`) in docs.
+- Pushing to GitHub (https://github.com/DougDarst/bedone) is fine with
+  approval.
 
 ## Conventions
 - Stack: PocketBase backend; Svelte 5 + Vite + TypeScript SPA built into
